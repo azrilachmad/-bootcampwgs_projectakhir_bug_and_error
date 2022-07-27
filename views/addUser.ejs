@@ -1,17 +1,19 @@
- <div class="container mt-3">
-  <div class="row">
-    <div class="col-md-6">
-      <h2>Add User Access</h2>
+<div class="container mt-3">
+
+  <div class="col-md-6">
+      <h2>Add User Access :</h2>
       <% if (typeof errors != "undefined") { %>
 
-    <div class="alert alert-danger" role="alert">
+      <div class="alert alert-danger" role="alert">
         <ul>
           <% errors.forEach(error => { %>
           <li><%= error.message %></li>
-          <% }) %> <% } %>
+          <% }) %> 
         </ul>
-    </div>
-        <% let data; %> <% if (locals.params) { data = params %> <% } %>
+      </div>
+      <% } %>
+
+      <% let data; %> <% if (locals.params) { data = params %> <% } %>
 
         <form method="POST" action="/admin/addUser">
           <input type="hidden" name="oldName" />
@@ -24,7 +26,6 @@
               name="username"
               value="<%= data?.username%>"
               placeholder="Input Username"
-              required
             />
           </div>
 
@@ -36,7 +37,6 @@
               id="password"
               name="password"
               placeholder="Input Password"
-              required
             />
           </div>
           <div class="mb-3">
@@ -47,26 +47,18 @@
               id="password2"
               name="password2"
               placeholder="Confirm Your Password"
-              required
+          
             />
           </div>
           <fieldset>
             <div class="mb-3">
               <label for="select" class="form-label">Select Role</label>
-              <select id="select" class="form-select" name="role">
-                <option selected disabled >Select Role</option>
+              <select id="select" class="form-control" name="role">
+                <option selected value="">Select Role</option>
                 <option value="admin">Admin</option>
                 <option value="user">User</option>
               </select>
             </div>
-            <div class="mb-3">
-              <div class="form-check">
-                <input
-                  class="form-check-input"
-                  type="checkbox"
-                  id="disabledFieldsetCheck"
-                  disabled
-                />
                 <button type="submit" value="addUser" class="btn btn-primary">
                   Add User
                 </button>
@@ -74,7 +66,6 @@
             </div>
           </fieldset>
         </form>
-      </div>
     </div>
-  </div>
+
 </div>

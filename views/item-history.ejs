@@ -30,9 +30,12 @@
   
           
           <% } else {%>
-        <table class="table table-hover" style="width: 160%">
+            <div class="fixed-bottom-right mb-3">
+        <a class="btn btn-primary badge rounded-pill" href="/log-app" role="button">App Log</a>
+      </div>
+        <table class="table table-hover table-dark" style="width: 160%">
           <thead>
-            <tr class="table table-primary">
+            <tr >
               <th scope="col">No.</th>
               <th scope="col">Date</th>
               <th scope="col">Detail</th>
@@ -76,9 +79,7 @@
           </tbody>
       </table>
       <% } %> 
-      <div class="fixed-bottom-right">
-        <a class="btn btn-primary badge rounded-pill" href="/log-app" role="button">App Log</a>
-      </div>
+      
       </div>
     </div>
   </div>

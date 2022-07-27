@@ -1,7 +1,7 @@
 <div class="container">
   <div class="row">
     <div class="col-md-8">
-      <h2>Product List :</h2>
+      
 
       <% if (messages.success) { %>
         <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -21,8 +21,64 @@
           </ul>
           </div>
           <% } %>
+          
+          <% if (model.length < 1 || model.length === null || model.length === undefined) { %>
+            <div class="alert alert-danger fw-bold" role="alert">
+              Data Items not found 
+            </div>
+            
 
+              <% } else {%>
+                <div class="mb-2">
+                  
+                  <% if (userRole === 'admin') { %>
+                    <div class="mb-3">
+                      <h2>Category List :</h2>
+                    </div>
+              <a class="btn btn-info" href="/item-list/add-category" role="button"
+              >Add Category</a
+              >
+            </div>
+              <% } %> 
+              <% if (userRole === 'admin') { %>
+      <table class="table table-hover table-dark" style="width: 40%;">
+        <thead>
+          <tr>
+            <th scope="col">Product Category</th>
+            <th scope="col">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+            <% let i = 1 %> 
 
+            <% function capitalizeTheFirstLetterOfEachWord(words) {%> 
+              <% var separateWord = words.toLowerCase().split(' '); %>
+                <% for (var i = 0; i < separateWord.length; i++) { %>
+                  <%separateWord[i] = separateWord[i].charAt(0).toUpperCase() + separateWord[i].substring(1);%>
+                <% } %> 
+              <%  return separateWord.join(' ');%> 
+            <% } %>  
+
+<% for( const cat of categoryList ) { %>
+  <tr class="table table-secondary">
+      <% i++ %> 
+      <td><%= capitalizeTheFirstLetterOfEachWord(cat.category) %> </td>
+      <td>
+        <a
+        onclick="return confirm('Are you sure ?')"
+        class="btn btn-danger badge rounded-pill"
+        href="/admin/item-category/delete/<%= cat.category %>"
+        role="button"
+        >Delete</a>
+      </td>
+  </tr>
+  <% } %> 
+<% } %>
+                
+        </tbody>
+    </table>
+    <% } %> 
+    
       <% if (model.length < 1 || model.length === null || model.length === undefined) { %>
         <div class="alert alert-danger fw-bold" role="alert">
          Data Items not found 
@@ -30,9 +86,21 @@
 
         
         <% } else {%>
-      <table class="table table-hover">
+          <div class="mb-2">
+            <br>
+            <div class="mb-3">
+              <h2>Product List :</h2>
+            </div>
+            <% if (userRole === 'admin') { %>
+
+              <a class="btn btn-info" href="/admin/item-list/add" role="button"
+              >Add Items</a
+              >
+            </div>
+              <% } %> 
+      <table class="table table-hover table-dark">
         <thead>
-          <tr class="table table-primary">
+          <tr >
             <th scope="col">No.</th>
             <th scope="col">Product Name</th>
             <th scope="col">Category</th>
@@ -70,14 +138,7 @@
         </tbody>
     </table>
     <% } %> 
-    <% if (userRole === 'admin') { %>
-      <a class="btn btn-primary" href="/admin/item-list/add" role="button"
-        >Add Items</a
-      >
-      <a class="btn btn-primary" href="/item-list/add-category" role="button"
-        >Add Category</a
-      >
-      <% } %> 
+    
     </div>
   </div>
 </div>

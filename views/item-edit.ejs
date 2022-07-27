@@ -47,7 +47,7 @@
         <fieldset>
           <div class="mb-3">
             <label for="select" class="form-label">Product Category</label>
-            <select id="select" class="form-select" name="category">
+            <select id="select" class="form-control" name="category">
               <option selected value="undefined">Select Category</option>
               <% for( const items of categories ) { %>
                 <option value="<%= items.category %> "><%= items.category %> </option>

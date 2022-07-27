@@ -27,10 +27,10 @@
           method="post"
           action="/admin/item-list/edit-quantity/update"
         >
-        <input type="" name="oldName" value="<%= model.item_name %>"/>
-        <input type="" name="oldCategory" value="<%= model.category%>"/>
-        <input type="" name="oldPrice" value="<%= model.price %>"/>
-        <input type="" name="oldQuantity" value="<%= model.quantity %>"/>
+        <input type="hidden" name="oldName" value="<%= model.item_name %>"/>
+        <input type="hidden" name="oldCategory" value="<%= model.category%>"/>
+        <input type="hidden" name="oldPrice" value="<%= model.price %>"/>
+        <input type="hidden" name="oldQuantity" value="<%= model.quantity %>"/>
           
             
           <div class="mb-3">

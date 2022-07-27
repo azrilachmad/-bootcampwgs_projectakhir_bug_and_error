@@ -86,19 +86,26 @@ app.get("/log-app", checkNotAuthenticated, isUser, (req, res) => {
     if (err) {
       return console.error(err.message);
     }
+    const filter = `SELECT DISTINCT username FROM log_app`;
+    pool.query(filter, [], (err, distinct) => {
+    if (err) {
+      return console.error(err.message);
+    }
     pool.query(
-      `INSERT INTO public.log_app(id_user, username, activity) VALUES (${req.user.id}, '${req.user.username}' ,'Access Login Page')`
-    );
-    res.render("log-page", {
-      title: "Log List",
-      layout: "layouts/main-layout",
-      msg: req.flash("msg"),
-      model: results.rows,
-      username: req.user.username,
-      userRole: req.user.role,
-    });
+      `INSERT INTO public.log_app(id_user, username, activity) VALUES (${req.user.id}, '${req.user.username}' ,'Access Log App Page')`
+      );
+      res.render("log-page", {
+        title: "Log List",
+        layout: "layouts/main-layout",
+        msg: req.flash("msg"),
+        model: results.rows,
+        username: req.user.username,
+        userRole: req.user.role,
+        filter: distinct.rows
+      });
   });
 });
+})
 
 // User Session
 app.get("/admin/dashboard", checkNotAuthenticated, isUser, (req, res) => {
@@ -113,7 +120,7 @@ app.get("/admin/dashboard", checkNotAuthenticated, isUser, (req, res) => {
   });
 });
 
-// Page Item List
+// Page Product List
 app.get("/admin/item-list", checkNotAuthenticated, isUser, (req, res) => {
   const sql = `SELECT * FROM items ORDER BY id`;
   pool.query(sql, [], (err, results) => {
@@ -123,14 +130,21 @@ app.get("/admin/item-list", checkNotAuthenticated, isUser, (req, res) => {
     pool.query(
       `INSERT INTO public.log_app(id_user, username, activity) VALUES (${req.user.id}, '${req.user.username}' ,'Access Product Page')`
     );
-    res.render("item-list", {
-      title: "Item List",
-      layout: "layouts/main-layout",
-      msg: req.flash("msg"),
-      model: results.rows,
-      username: req.user.username,
-      userRole: req.user.role,
-    });
+    const getCategory = `SELECT * FROM product_category ORDER BY id_category`;
+    pool.query(getCategory, (err, categories) => {
+      if (err) {
+        return console.error(err.message);
+      }
+      res.render("item-list", {
+        title: "Item List",
+        layout: "layouts/main-layout",
+        msg: req.flash("msg"),
+        model: results.rows,
+        username: req.user.username,
+        userRole: req.user.role,
+        categoryList: categories.rows
+      });
+    })
   });
 });
 
@@ -171,7 +185,7 @@ app.get(
   }
 );
 
-// Page Item Detail
+// Product detail
 app.get(
   "/admin/item-list/:item_name",
   checkNotAuthenticated,
@@ -239,6 +253,124 @@ app.get(
   }
 );
 
+// Edit User detail
+app.get(
+  "/user-list/edit/:username",
+  checkNotAuthenticated,
+  isAdmin,
+  (req, res) => {
+    const sql = `SELECT * FROM users where username = '${req.params.username}'`;
+    pool.query(sql, (err, result) => {
+      if (err) {
+        return console.error(err.message);
+      }
+
+      pool.query(
+        `INSERT INTO public.log_app(id_user, username, activity) VALUES (${req.user.id}, '${req.user.username}' ,'Edit User Data')`
+      );
+        res.render("edit-user", {
+          title: "Edit Quantity Product",
+          layout: "layouts/main-layout",
+          model: result.rows[0],
+        });
+      });
+    });
+
+// Edit User (post)
+app.post(
+  "/user-list/update",
+  checkNotAuthenticated,
+  isAdmin,
+  async (req, res) => {
+    const { username, password, role, password2, oldUsername, oldPassword, oldRole } = req.body;
+
+
+    console.log({
+      oldUsername,
+      oldPassword,
+      oldRole,
+      username,
+      password,
+      role,
+    });
+  
+    const errors = [];
+    
+    if (password === oldPassword) {
+      errors.push({ message: "New Password same as old password" });
+    }
+
+    if (password.length < 6) {
+      errors.push({ message: "Password must be at least 6 characters" });
+    }
+    
+    if (password !== password2) {
+      errors.push({ message: "Password does not match" });
+    }
+    if (role === undefined) {
+      errors.push({ message: "Please select a role" });
+    }
+  
+   
+        
+        if (errors.length > 0) {
+          pool.query(
+            `SELECT * FROM users WHERE username = '${oldUsername}'`, (err, getNameData) => {
+              if (err) {
+                throw err
+              }
+              res.render("edit-user", {
+                errors,
+                layout: "layouts/main-layout",
+                title: "List User",
+                params: req.body,
+                model: getNameData.rows,
+              });
+            })
+              
+        } else {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      console.log(hashedPassword);
+  
+      pool.query(
+        `SELECT * FROM users WHERE username = $1`,
+        [username],
+        (err, results) => {
+          if (err) {
+            throw err;
+          }
+          console.log(results.rows);
+  
+          if (results.rows.length > 0 && (username != oldUsername)) {
+            errors.push({ message: "Username already exits" });
+            res.render("edit-user", {
+              errors,
+              layout: "layouts/main-layout",
+              title: "Add User",
+              params: req.body,
+              model: results.rows
+            });
+          } else {
+            const name = username.toLowerCase();
+            pool.query(
+              `UPDATE users SET username = $1, password = $2, role = $3 WHERE username=$4; `,
+              [username, hashedPassword, role, oldUsername],
+              (err, result) => {
+                if (err) {
+                }
+                pool.query(
+                  `INSERT INTO public.log_app(id_user, username, activity) VALUES (${req.user.id}, '${req.user.username}' ,'Edit User')`
+                );
+                req.flash("success", "Successfully Edit user");
+                res.redirect("/admin/user-list");
+              }
+            );
+          }
+        }
+      );
+    }
+  });
+
 // Add User
 app.get("/admin/addUser", checkNotAuthenticated, isAdmin, (req, res) => {
   pool.query(
@@ -298,23 +430,35 @@ app.post("/admin/addUser", checkNotAuthenticated, isAdmin, async (req, res) => {
 
   const errors = [];
 
+  if (username === null || username === undefined || username === '') {
+    errors.push({ message: "Please input username" });
+  }
+  if (password === null || password === undefined || password === '') {
+    errors.push({ message: "Please input password" });
+  }
   if (password.length < 6) {
     errors.push({ message: "Password must be at least 6 characters" });
   }
   if (password !== password2) {
     errors.push({ message: "Password does not match" });
   }
-  if (role === undefined) {
+  if (role === undefined || role === null || role === '') {
     errors.push({ message: "Please select a role" });
   }
-
-  if (errors.length > 0) {
-    res.render("addUser", {
-      errors,
+  pool.query(
+    `SELECT * FROM users WHERE username = $1`,
+    [username], 
+    async (err, ress) => {
+      if (err) {
+        throw err;
+      }
+      if (errors.length > 0) {
+        res.render("addUser", {
+          errors,
       layout: "layouts/main-layout",
       title: "Add User",
       params: req.body,
-      model: results.rows,
+      model: ress.rows,
     });
   } else {
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -331,7 +475,7 @@ app.post("/admin/addUser", checkNotAuthenticated, isAdmin, async (req, res) => {
 
         if (results.rows.length > 0) {
           errors.push({ message: "Username already exits" });
-          res.render("AddUser", {
+          res.render("addUser", {
             errors,
             layout: "layouts/main-layout",
             title: "Add User",
@@ -350,14 +494,15 @@ app.post("/admin/addUser", checkNotAuthenticated, isAdmin, async (req, res) => {
                 `INSERT INTO public.log_app(id_user, username, activity) VALUES (${req.user.id}, '${req.user.username}' ,'Create New User')`
               );
               req.flash("success", "Successfully created a new user");
-              res.redirect("/admin/dashboard");
+              res.redirect("/admin/user-list");
             }
-          );
+            );
+          }
         }
+        );
       }
-    );
-  }
-});
+    })
+    });
 
 // Add Product Data
 app.post(
@@ -401,61 +546,70 @@ app.post(
       errors.push({ message: "Invalid amount of price" });
     }
 
-    if (errors.length > 0) {
-      res.render("add-item", {
-        errors,
-        layout: "layouts/main-layout",
-        title: "Add Item",
-        params: req.body,
-      });
-    } else {
-      pool.query(
-        `SELECT * FROM items WHERE item_name = $1`,
-        [item_name.toLowerCase()],
-        (err, results) => {
-          if (err) {
-            throw err;
-          }
-          console.log(results.rows);
-
-          if (results.rows.length > 0) {
-            errors.push({ message: "Product name already exists" });
-            res.render("add-item", {
-              errors,
-              layout: "layouts/main-layout",
-              title: "Add Item",
-              params: req.body,
-            });
-          } else {
-            const product = item_name.toLowerCase();
-            pool.query(
-              "INSERT INTO items (item_name, category, price, quantity, item_image) VALUES ($1, $2, $3, $4, $5) RETURNING id",
-              [product, category, price, quantity, img],
-              (err, results) => {
-                if (err) {
-                  throw err;
-                }
+    pool.query(
+      `SELECT * FROM product_category`,
+      (err, categories) => {
+        if (err) {
+          throw err;
+        }
+        if (errors.length > 0) {
+          console.log("ini terjadi")
+          res.render("add-item", {
+            errors,
+            layout: "layouts/main-layout",
+            title: "Add Item",
+            params: req.body,
+            model: categories.rows
+          });
+        } else {
+          pool.query(
+            `SELECT * FROM items WHERE item_name = $1`,
+            [item_name.toLowerCase()],
+            (err, results) => {
+              if (err) {
+                throw err;
+              }
+              console.log(results.rows);
+              
+              if (results.rows.length > 0) {
+                errors.push({ message: "Product name already exists" });
+                res.render("add-item", {
+                  errors,
+                  layout: "layouts/main-layout",
+                  title: "Add Item",
+                  params: req.body,
+                });
+              } else {
+                const product = item_name.toLowerCase();
                 pool.query(
-                  "INSERT INTO product_history (date , product_name, details, quantity, category) VALUES (NOW(), $1, $2, $3, $4) RETURNING id",
-                  [product, "Add Product", quantity, category],
-                  (err, result) => {
+                  "INSERT INTO items (item_name, category, price, quantity, item_image) VALUES ($1, $2, $3, $4, $5) RETURNING id",
+                  [product, category, price, quantity, img],
+                  (err, results) => {
                     if (err) {
                       throw err;
                     }
-                    console.log(results.rows);
                     pool.query(
-                      `INSERT INTO public.log_app(id_user, username, activity) VALUES (${req.user.id}, '${req.user.username}' ,'Add New Product')`
-                    );
-                    req.flash("success", "Successfully create a product");
-                    res.redirect("/admin/item-list");
+                      "INSERT INTO product_history (date , product_name, details, quantity, category) VALUES (NOW(), $1, $2, $3, $4) RETURNING id",
+                      [product, "Add Product", quantity, category],
+                      (err, result) => {
+                        if (err) {
+                          throw err;
+                        }
+                        console.log(results.rows);
+                        pool.query(
+                          `INSERT INTO public.log_app(id_user, username, activity) VALUES (${req.user.id}, '${req.user.username}' ,'Add New Product')`
+                          );
+                          req.flash("success", "Successfully create a product");
+                          res.redirect("/admin/item-list");
+                        }
+                        );
+                      }
+                      );
+                    }
                   }
-                );
-              }
-            );
-          }
-        }
-      );
-    }
+                  );
+                }
+              })
   }
 );
 
@@ -486,7 +640,7 @@ app.post(
       });
     } else {
       pool.query(
-        `SELECT * FROM items WHERE item_name = $1`,
+        `SELECT * FROM product_category WHERE category = $1`,
         [category.toLowerCase()],
         (err, results) => {
           if (err) {
@@ -495,7 +649,7 @@ app.post(
           console.log(results.rows);
 
           if (results.rows.length > 0) {
-            errors.push({ message: "ProduCategoryct name already exists" });
+            errors.push({ message: "Category name already exists"});
             res.render("add-category", {
               errors,
               layout: "layouts/main-layout",
@@ -871,6 +1025,44 @@ app.get(
   }
 );
 
+
+
+// Delete Category
+app.get(
+  "/admin/item-category/delete/:category",
+  checkNotAuthenticated,
+  isAdmin,
+  (req, res) => {
+    const categoryName = req.params.category;
+    pool.query(
+      `SELECT * FROM product_category where category = '${categoryName}'`,
+      (err, results) => {
+        if (err) {
+          throw err;
+        } 
+        if (results.rows.length < 1) {
+          req.flash("error", "Category not found");
+          res.redirect("/admin/item-list");
+        } else {
+
+              const sql = `DELETE FROM product_category WHERE category = '${categoryName}'`;
+              pool.query(sql, (err, result) => {
+                if (err) {
+                  return console.error(err.message);
+                } else {
+                  console.log(results.rows);
+                  pool.query(
+                    `INSERT INTO public.log_app(id_user, username, activity) VALUES (${req.user.id}, '${req.user.username}' ,'Deleting Category')`
+                  );
+                  req.flash("success", "Successfully Delete a Category");
+                  res.redirect("/admin/item-list");
+                }
+              });
+            }
+          }
+          );
+        })
+          
 // Delete User Data
 app.get(
   "/user-list/delete/:username",
@@ -962,8 +1154,16 @@ app.get("/admin/item-history", checkNotAuthenticated, isAdmin, (req, res) => {
   });
 });
 
+app.get("/error", (req, res) => {
+  res.status(404);
+  res.render("error-404", {layout: "layouts/login-layout", title: '404 not found'})
+});
+
 app.use("/", (req, res) => {
   res.status(404);
+  pool.query(
+    `INSERT INTO public.log_app(id_user, username, activity) VALUES (${req.user.id}, '${req.user.username}' ,'Invalid Page Access')`
+  );
   res.render("error-404", {layout: "layouts/login-layout", title: '404 not found'})
 });
 
@@ -985,14 +1185,20 @@ function isAdmin(req, res, next) {
   if (req.user.role === "admin") {
     return next();
   }
-  res.redirect("/error");
+  pool.query(
+    `INSERT INTO public.log_app(id_user, username, activity) VALUES (${req.user.id}, '${req.user.username}' ,'Invalid Page Access')`
+  );
+  res.redirect("http://localhost:3000/error");
 }
 
 function isUser(req, res, next) {
   if (req.user.role === "user" || req.user.role === "admin") {
     return next();
   }
-  res.redirect("/error");
+  pool.query(
+    `INSERT INTO public.log_app(id_user, username, activity) VALUES (${req.user.id}, '${req.user.username}' ,'Invalid Page Access')`
+  );
+  res.redirect("http://localhost:3000/error");
 }
 
 app.listen(port, () => {
